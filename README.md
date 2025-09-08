@@ -14,7 +14,7 @@
 
 ---
 
-## Key Insights
+## 🔑 Key Insights
 - **Receivables:** 64.44% of invoices are paid on time while 35.56% are delayed. Average settlement time is 26.70 days with an additional delay of 9.68 days. Disputes are significant, with 77.25% unresolved, creating a cash-flow risk.  
 - **Payables:** 64.44% of invoices are paid on time and 35.56% are delayed. Average settlement is 26.73 days with a 9.70-day delay. Disputed payables total 153,171 USD, which may affect vendor relationships.  
 - **Liquidity:** DSO and DPO are nearly equal, resulting in a Cash Conversion Cycle of -0.03 days. This reflects efficiency but limited flexibility.  
@@ -26,16 +26,16 @@ Overall, receivables performance is moderate but late payments and disputes are 
 
 ## Dashboard Previews
 
-### Overall Financial Health Dashboard
+### 1. Overall Financial Health Dashboard
 ![Financial Health Overview](Image_Asset/1.jpg)
 
-### Accounts Receivable Analysis
+### 2. Accounts Receivable Analysis
 ![Accounts Receivable Analysis](Image_Asset/2.jpg)
 
-### Accounts Payable Analysis
+### 3. Accounts Payable Analysis
 ![Accounts Payable Analysis](Image_Asset/3.jpg)
 
-### Cash Flow Dashboard
+### 4. Cash Flow Dashboard
 ![Cash Flow Dashboard](Image_Asset/4.jpg)
 
 ---
@@ -57,8 +57,8 @@ Overall, receivables performance is moderate but late payments and disputes are 
 
 ## Key DAX Snippets
 
-### Dim Date (dynamic range across facts)
-```DAX
+### 1. Dim Date (dynamic range across facts)
+```
 Dim_Date =
 VAR DatesAP =
     UNION(
@@ -87,3 +87,51 @@ ADDCOLUMNS(
     "Weekday Name", FORMAT([Date], "dddd"),
     "IsWeekend", IF(WEEKDAY([Date], 2) > 5, TRUE(), FALSE())
 )
+```
+### 2. Aging buckets table
+```
+AgingBuckets =
+DATATABLE(
+    "BucketID", INTEGER,
+    "BucketName", STRING,
+    "MinDays", INTEGER,
+    "MaxDays", INTEGER,
+{
+    {1, "Current (Not Due)", -9999, -1},
+    {2, "0-30 Days", 0, 30},
+    {3, "31-60 Days", 31, 60},
+    {4, "61-90 Days", 61, 90},
+    {5, "90+ Days", 91, 99999}
+}
+)
+```
+
+### 3. AR aging by bucket
+```
+AgingBuckets =
+AR Aging Amount by Bucket =
+VAR AsOfDate = MAX(Dim_Date[Date])
+VAR MinD = MIN(AgingBuckets[MinDays])
+VAR MaxD = MAX(AgingBuckets[MaxDays])
+RETURN
+CALCULATE(
+    SUM(Fact_AR[InvoiceAmount]),
+    FILTER(
+        Fact_AR,
+        NOT(ISBLANK(Fact_AR[InvoiceDate])) &&
+        Fact_AR[InvoiceDate] <= AsOfDate &&
+        ( ISBLANK(Fact_AR[SettledDate]) || Fact_AR[SettledDate] > AsOfDate ) &&
+        VAR DaysPastDue = DATEDIFF(Fact_AR[DueDate], AsOfDate, DAY)
+        RETURN DaysPastDue >= MinD && DaysPastDue <= MaxD
+    )
+)
+
+```
+
+---
+
+## Closing Note
+This project highlights how AR, AP, and cash-flow insights can be combined in Power BI to evaluate financial health.  
+The dashboard is designed to support decision-making by giving a clear view of liquidity, efficiency, and risk.  
+
+Thank you for reading — feedback and suggestions are always welcome.
